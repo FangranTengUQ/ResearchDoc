@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+{% block title %}Edit: {{ summary.title }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'projects:list' %}">Projects</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'projects:detail' project.pk %}">{{ project.title|truncatechars:30 }}</a></li>
+        <li class="breadcrumb-item active">{{ summary.title|truncatechars:30 }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.tiptap-editor {
+    min-height: 400px;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 0.375rem 0.375rem;
+    padding: 1.25rem;
+    outline: none;
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+.tiptap-editor:focus { border-color: #7c3aed; box-shadow: 0 0 0 0.2rem rgba(124,58,237,.15); }
+.tiptap-toolbar { border: 1px solid #dee2e6; border-bottom: none; border-radius: 0.375rem 0.375rem 0 0; padding: 0.5rem; background: #f8f9fa; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.tiptap-toolbar button { border: none; background: transparent; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; color: #495057; font-size: 0.9rem; }
+.tiptap-toolbar button:hover, .tiptap-toolbar button.is-active { background: #e9ecef; color: #7c3aed; }
+.tiptap-toolbar .divider { width: 1px; background: #dee2e6; margin: 0.15rem 0.25rem; }
+.citation-badge { background: #7c3aed20; color: #7c3aed; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.citation-list-item { cursor: pointer; padding: 0.5rem 1rem; border-bottom: 1px solid #f0f0f0; }
+.citation-list-item:hover { background: #f8f4ff; }
+.citation-list-item.added { background: #f0f4ff; color: #7c3aed; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1" id="summary-title-display">{{ summary.title }}</h3>
+        <small class="text-muted">Last saved: {{ summary.updated_at|date:"d M Y, H:i" }}</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-purple btn-sm" id="btn-ai-generate" data-project-id="{{ project.pk }}">
+            <i class="bi bi-robot me-1"></i>AI Generate
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-save">
+            <i class="bi bi-save me-1"></i>Save
+        </button>
+        <a href="{% url 'projects:detail' project.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Editor Column -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3">
+                <div class="mb-3">
+                    <label class="form-label fw-medium small text-muted">TITLE</label>
+                    <input type="text" id="editor-title" class="form-control" value="{{ summary.title }}">
+                </div>
+                <label class="form-label fw-medium small text-muted">CONTENT</label>
+                <div class="tiptap-toolbar" id="toolbar">
+                    <button data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>
+                    <button data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>
+                    <button data-cmd="underline" title="Underline"><i class="bi bi-type-underline"></i></button>
+                    <div class="divider"></div>
+                    <button data-cmd="h1" title="Heading 1"><strong>H1</strong></button>
+                    <button data-cmd="h2" title="Heading 2"><strong>H2</strong></button>
+                    <button data-cmd="h3" title="Heading 3"><strong>H3</strong></button>
+                    <div class="divider"></div>
+                    <button data-cmd="bulletList" title="Bullet List"><i class="bi bi-list-ul"></i></button>
+                    <button data-cmd="orderedList" title="Ordered List"><i class="bi bi-list-ol"></i></button>
+                    <div class="divider"></div>
+                    <button data-cmd="blockquote" title="Blockquote"><i class="bi bi-quote"></i></button>
+                    <div class="divider"></div>
+                    <button data-cmd="undo" title="Undo"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button data-cmd="redo" title="Redo"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+                <div class="tiptap-editor" id="editor" contenteditable="true"></div>
+            </div>
+        </div>
+
+        <!-- AI Loading overlay -->
+        <div id="ai-loading" class="alert alert-info d-none mt-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border spinner-border-sm"></div>
+                <span>Generating AI summary... This may take a moment.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Citations Sidebar -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 80px;">
+            <div class="card-header bg-transparent border-0 pt-3 px-3 pb-1">
+                <h6 class="fw-semibold mb-0"><i class="bi bi-bookmark me-2 text-purple"></i>Citations</h6>
+                <small class="text-muted">Click to insert [n] reference</small>
+            </div>
+            <div class="card-body p-0">
+                {% if resources %}
+                <div id="citation-resources">
+                    {% for resource in resources %}
+                    <div class="citation-list-item" data-resource-id="{{ resource.pk }}" data-resource-title="{{ resource.title }}">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="citation-num badge bg-secondary rounded-pill" style="min-width:28px; text-align:center"></span>
+                            <div class="min-w-0">
+                                <div class="fw-medium small text-truncate">{{ resource.title }}</div>
+                                <div class="text-muted" style="font-size:0.75rem">
+                                    {% if resource.resource_type == 'file' %}<i class="bi bi-file-earmark-pdf text-danger"></i>{% else %}<i class="bi bi-link text-info"></i>{% endif %}
+                                    {{ resource.get_resource_type_display }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 text-muted small text-center">
+                    <i class="bi bi-file-earmark-x fs-3 opacity-50 d-block mb-2"></i>
+                    No resources in this project yet.
+                    <a href="{% url 'resources:create' project.pk %}">Add resources</a> first.
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-0 px-3 py-2">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Citations in text appear as [1], [2], etc.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for saving -->
+<form method="post" id="save-form" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="content_json" id="input-content-json">
+    <input type="hidden" name="content_html" id="input-content-html">
+    <input type="hidden" name="title" id="input-title">
+    <input type="hidden" name="citations" id="input-citations">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Tiptap via CDN (standalone bundle) -->
+<script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.10.3/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.10.3/dist/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-underline@2.10.3/dist/index.umd.min.js"></script>
+
+<script>
+const INITIAL_JSON = {{ summary.content_json|safe }};
+const INITIAL_HTML = `{{ summary.content_html|escapejs }}`;
+const CITATION_MAP_RAW = {{ citation_map|safe }};
+const AI_GENERATE_URL = "{% url 'summaries:ai_generate' project.pk %}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+// Citation state: resource_id -> citation_number
+let citationMap = {};
+let nextCitationNum = 1;
+
+// Initialise citation map from saved data
+Object.entries(CITATION_MAP_RAW).forEach(([rid, num]) => {
+    citationMap[rid] = num;
+    if (num >= nextCitationNum) nextCitationNum = num + 1;
+});
+
+// ---- Tiptap Editor Setup ----
+let editor;
+document.addEventListener('DOMContentLoaded', function() {
+    const { Editor } = window.tiptapCore || window['@tiptap/core'] || {};
+    const StarterKit = window.StarterKit || window['@tiptap/starter-kit'];
+    const Underline = window.Underline || window['@tiptap/extension-underline'];
+
+    // Fallback: use contenteditable manually if Tiptap not loaded
+    const editorEl = document.getElementById('editor');
+
+    if (typeof Editor === 'undefined' || typeof StarterKit === 'undefined') {
+        // Fallback to simple contenteditable
+        editorEl.innerHTML = INITIAL_HTML;
+        setupSimpleEditor(editorEl);
+        return;
+    }
+
+    editor = new Editor({
+        element: editorEl,
+        extensions: [
+            StarterKit,
+            Underline,
+        ],
+        content: INITIAL_HTML || (Object.keys(INITIAL_JSON).length > 0 ? INITIAL_JSON : '<p></p>'),
+    });
+
+    // Toolbar buttons
+    document.querySelectorAll('#toolbar button[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const cmd = this.dataset.cmd;
+            if (!editor) return;
+            switch(cmd) {
+                case 'bold': editor.chain().focus().toggleBold().run(); break;
+                case 'italic': editor.chain().focus().toggleItalic().run(); break;
+                case 'underline': editor.chain().focus().toggleUnderline().run(); break;
+                case 'h1': editor.chain().focus().toggleHeading({ level: 1 }).run(); break;
+                case 'h2': editor.chain().focus().toggleHeading({ level: 2 }).run(); break;
+                case 'h3': editor.chain().focus().toggleHeading({ level: 3 }).run(); break;
+                case 'bulletList': editor.chain().focus().toggleBulletList().run(); break;
+                case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break;
+                case 'blockquote': editor.chain().focus().toggleBlockquote().run(); break;
+                case 'undo': editor.chain().focus().undo().run(); break;
+                case 'redo': editor.chain().focus().redo().run(); break;
+            }
+        });
+    });
+
+    updateCitationBadges();
+});
+
+function setupSimpleEditor(el) {
+    // Simple contenteditable fallback
+    document.querySelectorAll('#toolbar button[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const cmd = this.dataset.cmd;
+            const cmds = {
+                'bold': () => document.execCommand('bold'),
+                'italic': () => document.execCommand('italic'),
+                'underline': () => document.execCommand('underline'),
+                'h1': () => document.execCommand('formatBlock', false, 'h1'),
+                'h2': () => document.execCommand('formatBlock', false, 'h2'),
+                'h3': () => document.execCommand('formatBlock', false, 'h3'),
+                'bulletList': () => document.execCommand('insertUnorderedList'),
+                'orderedList': () => document.execCommand('insertOrderedList'),
+                'undo': () => document.execCommand('undo'),
+                'redo': () => document.execCommand('redo'),
+            };
+            if (cmds[cmd]) cmds[cmd]();
+        });
+    });
+}
+
+// ---- Citation Management ----
+function updateCitationBadges() {
+    document.querySelectorAll('.citation-list-item').forEach(item => {
+        const rid = item.dataset.resourceId;
+        const numEl = item.querySelector('.citation-num');
+        if (citationMap[rid]) {
+            numEl.textContent = `[${citationMap[rid]}]`;
+            numEl.classList.remove('bg-secondary');
+            numEl.classList.add('bg-purple');
+            item.classList.add('added');
+        } else {
+            numEl.textContent = '';
+            numEl.classList.add('bg-secondary');
+            numEl.classList.remove('bg-purple');
+            item.classList.remove('added');
+        }
+    });
+}
+
+document.querySelectorAll('.citation-list-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const rid = this.dataset.resourceId;
+        const rtitle = this.dataset.resourceTitle;
+        if (!citationMap[rid]) {
+            citationMap[rid] = nextCitationNum++;
+        }
+        const num = citationMap[rid];
+        const citationHtml = `<span class="citation-badge" data-resource-id="${rid}">[${num}]</span>&nbsp;`;
+
+        if (editor) {
+            editor.chain().focus().insertContent(citationHtml).run();
+        } else {
+            document.execCommand('insertHTML', false, citationHtml);
+        }
+        updateCitationBadges();
+    });
+});
+
+// ---- Save ----
+document.getElementById('btn-save').addEventListener('click', function() {
+    const title = document.getElementById('editor-title').value.trim() || '{{ summary.title }}';
+    let contentHtml = '';
+    let contentJson = {};
+
+    if (editor) {
+        contentHtml = editor.getHTML();
+        contentJson = editor.getJSON();
+    } else {
+        contentHtml = document.getElementById('editor').innerHTML;
+        contentJson = { type: 'doc', content: [] };
+    }
+
+    const citationsList = Object.entries(citationMap).map(([rid, num]) => ({
+        resource_id: parseInt(rid),
+        number: num
+    }));
+
+    document.getElementById('input-title').value = title;
+    document.getElementById('input-content-html').value = contentHtml;
+    document.getElementById('input-content-json').value = JSON.stringify(contentJson);
+    document.getElementById('input-citations').value = JSON.stringify(citationsList);
+    document.getElementById('save-form').submit();
+});
+
+// ---- AI Generate ----
+document.getElementById('btn-ai-generate').addEventListener('click', async function() {
+    const loadingEl = document.getElementById('ai-loading');
+    this.disabled = true;
+    loadingEl.classList.remove('d-none');
+
+    try {
+        const response = await fetch(AI_GENERATE_URL, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN,
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        if (data.error) {
+            alert('AI Error: ' + data.error);
+        } else {
+            if (editor) {
+                editor.commands.setContent(data.html);
+            } else {
+                document.getElementById('editor').innerHTML = data.html;
+            }
+
+            if (data.citations && data.citations.length) {
+                data.citations.forEach(c => {
+                    if (!citationMap[c.resource_id]) {
+                        citationMap[c.resource_id] = c.number;
+                        if (c.number >= nextCitationNum) nextCitationNum = c.number + 1;
+                    }
+                });
+                updateCitationBadges();
+            }
+        }
+    } catch (err) {
+        alert('Request failed: ' + err.message);
+    } finally {
+        this.disabled = false;
+        loadingEl.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.title }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'projects:list' %}">Projects</a></li>
+        <li class="breadcrumb-item active">{{ project.title|truncatechars:40 }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Project Header -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-1">{{ project.title }}</h2>
+        {% if project.description %}
+        <p class="text-muted mb-0">{{ project.description }}</p>
+        {% endif %}
+        <small class="text-muted"><i class="bi bi-clock me-1"></i>Updated {{ project.updated_at|date:"d M Y, H:i" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'projects:edit' project.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{% url 'projects:delete' project.pk %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Delete
+        </a>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="projectTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#resources-tab">
+            <i class="bi bi-file-earmark me-1"></i>Resources
+            <span class="badge bg-secondary ms-1">{{ resources.count }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#summaries-tab">
+            <i class="bi bi-card-text me-1"></i>Summaries
+            <span class="badge bg-secondary ms-1">{{ summaries.count }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#comparisons-tab">
+            <i class="bi bi-table me-1"></i>Comparison Tables
+            <span class="badge bg-secondary ms-1">{{ comparisons.count }}</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Resources Tab -->
+    <div class="tab-pane fade show active" id="resources-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-semibold mb-0">Resources</h5>
+            <a href="{% url 'resources:create' project.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Add Resource
+            </a>
+        </div>
+        {% if resources %}
+        <div class="row g-3">
+            {% for resource in resources %}
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="resource-icon rounded-2 p-2 {% if resource.resource_type == 'file' %}bg-danger-light{% else %}bg-info-light{% endif %}">
+                                <i class="bi {% if resource.resource_type == 'file' %}bi-file-earmark-pdf text-danger{% else %}bi-link-45deg text-info{% endif %} fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <h6 class="fw-semibold mb-1 text-truncate">{{ resource.title }}</h6>
+                                {% if resource.description %}
+                                <p class="text-muted small mb-2">{{ resource.description|truncatechars:80 }}</p>
+                                {% endif %}
+                                <div class="d-flex gap-2">
+                                    <a href="{{ resource.display_link }}" target="_blank" class="btn btn-outline-secondary btn-sm py-0">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>Open
+                                    </a>
+                                    <a href="{% url 'resources:edit' resource.pk %}" class="btn btn-outline-primary btn-sm py-0">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'resources:delete' resource.pk %}" class="btn btn-outline-danger btn-sm py-0">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-4 text-muted">
+            <i class="bi bi-file-earmark-plus fs-1 opacity-50"></i>
+            <p class="mt-2">No resources yet. Add PDFs or URLs to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Summaries Tab -->
+    <div class="tab-pane fade" id="summaries-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-semibold mb-0">Summaries</h5>
+            <a href="{% url 'summaries:create' project.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>New Summary
+            </a>
+        </div>
+        {% if summaries %}
+        <div class="list-group list-group-flush">
+            {% for summary in summaries %}
+            <div class="list-group-item border-0 shadow-sm mb-2 rounded-3 px-4 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-semibold mb-1">{{ summary.title }}</h6>
+                        <small class="text-muted">Updated {{ summary.updated_at|date:"d M Y" }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'summaries:editor' summary.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        <a href="{% url 'summaries:delete' summary.pk %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-4 text-muted">
+            <i class="bi bi-card-text fs-1 opacity-50"></i>
+            <p class="mt-2">No summaries yet. Create your first AI-assisted summary.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Comparisons Tab -->
+    <div class="tab-pane fade" id="comparisons-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-semibold mb-0">Comparison Tables</h5>
+            <a href="{% url 'comparisons:create' project.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>New Table
+            </a>
+        </div>
+        {% if comparisons %}
+        <div class="list-group list-group-flush">
+            {% for table in comparisons %}
+            <div class="list-group-item border-0 shadow-sm mb-2 rounded-3 px-4 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-semibold mb-1">{{ table.title }}</h6>
+                        <small class="text-muted">Updated {{ table.updated_at|date:"d M Y" }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'comparisons:editor' table.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        <a href="{% url 'comparisons:delete' table.pk %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-4 text-muted">
+            <i class="bi bi-table fs-1 opacity-50"></i>
+            <p class="mt-2">No comparison tables yet. Create one with AI assistance.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% block title %}Edit: {{ table.title }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'projects:list' %}">Projects</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'projects:detail' project.pk %}">{{ project.title|truncatechars:30 }}</a></li>
+        <li class="breadcrumb-item active">{{ table.title|truncatechars:30 }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.comparison-table { width: 100%; border-collapse: collapse; }
+.comparison-table th, .comparison-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    min-width: 120px;
+    vertical-align: top;
+}
+.comparison-table th { background: #f8f4ff; color: #7c3aed; font-weight: 600; }
+.comparison-table th:first-child { background: #f8f9fa; color: #495057; }
+.comparison-table td:first-child { font-weight: 500; background: #fafafa; }
+.comparison-table [contenteditable]:focus { outline: 2px solid #7c3aed; outline-offset: -2px; border-radius: 2px; }
+.comparison-table td.editing { background: #f8f4ff; }
+.btn-add-col, .btn-add-row { border: 2px dashed #dee2e6; color: #6c757d; }
+.btn-add-col:hover, .btn-add-row:hover { border-color: #7c3aed; color: #7c3aed; }
+.col-header-actions, .row-actions { display: none; }
+th:hover .col-header-actions, tr:hover .row-actions { display: inline-flex; }
+.table-container { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1" id="table-title-display">{{ table.title }}</h3>
+        <small class="text-muted">Last saved: {{ table.updated_at|date:"d M Y, H:i" }}</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-purple btn-sm" id="btn-ai-generate" data-project-id="{{ project.pk }}">
+            <i class="bi bi-robot me-1"></i>AI Generate
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-save">
+            <i class="bi bi-save me-1"></i>Save
+        </button>
+        <a href="{% url 'projects:detail' project.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<!-- AI Input -->
+<div id="ai-input-section" class="card border-0 shadow-sm mb-4 d-none">
+    <div class="card-body p-3">
+        <h6 class="fw-semibold mb-2"><i class="bi bi-robot me-2 text-purple"></i>AI Comparison Generator</h6>
+        <p class="text-muted small mb-3">Enter items to compare (press Enter after each, minimum 2):</p>
+        <div id="items-input-area" class="d-flex flex-wrap gap-2 mb-3 p-2 border rounded">
+            <input type="text" id="item-input" class="form-control form-control-sm" style="width:200px" placeholder="Type item and press Enter...">
+        </div>
+        <div id="item-tags" class="d-flex flex-wrap gap-2 mb-3"></div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" id="btn-ai-submit">
+                <i class="bi bi-magic me-1"></i>Generate with AI
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-ai-cancel">Cancel</button>
+        </div>
+        <div id="ai-loading" class="alert alert-info mt-3 d-none">
+            <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border spinner-border-sm"></div>
+                <span>AI is generating your comparison table...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save feedback -->
+<div id="save-feedback" class="alert d-none mb-3"></div>
+
+<!-- Table Editor -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-3">
+        <div class="mb-3">
+            <label class="form-label fw-medium small text-muted">TABLE TITLE</label>
+            <input type="text" id="table-title-input" class="form-control" value="{{ table.title }}">
+        </div>
+        <div class="table-container">
+            <table class="comparison-table" id="comparison-table">
+                <thead id="table-head"></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm btn-add-row" id="btn-add-row">
+                <i class="bi bi-plus-lg me-1"></i>Add Row
+            </button>
+            <button class="btn btn-outline-secondary btn-sm btn-add-col" id="btn-add-col">
+                <i class="bi bi-plus-lg me-1"></i>Add Column
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const AI_URL = "{% url 'comparisons:ai_generate' project.pk %}";
+const SAVE_URL = "{% url 'comparisons:editor' table.pk %}";
+const CSRF = "{{ csrf_token }}";
+let tableData = {{ table_data_json|safe }};
+let itemList = [];
+
+// ---- Render Table ----
+function renderTable() {
+    const head = document.getElementById('table-head');
+    const body = document.getElementById('table-body');
+    const cols = tableData.columns || ['Feature'];
+    const rows = tableData.rows || [];
+
+    // Header
+    let headHtml = '<tr>';
+    cols.forEach((col, ci) => {
+        headHtml += `<th>
+            <div class="d-flex align-items-center gap-1">
+                <span contenteditable="true" class="col-name flex-grow-1" data-col="${ci}">${escHtml(col)}</span>
+                ${ci > 0 ? `<button class="btn btn-sm p-0 text-danger ms-1 col-header-actions" onclick="removeCol(${ci})" title="Remove column"><i class="bi bi-x-circle"></i></button>` : ''}
+            </div>
+        </th>`;
+    });
+    headHtml += '</tr>';
+    head.innerHTML = headHtml;
+
+    // Body
+    let bodyHtml = '';
+    rows.forEach((row, ri) => {
+        bodyHtml += '<tr>';
+        bodyHtml += `<td>
+            <div class="d-flex align-items-center gap-1">
+                <span contenteditable="true" class="row-name flex-grow-1" data-row="${ri}">${escHtml(row.name || '')}</span>
+                <button class="btn btn-sm p-0 text-danger ms-1 row-actions" onclick="removeRow(${ri})" title="Remove row"><i class="bi bi-x-circle"></i></button>
+            </div>
+        </td>`;
+        for (let ci = 1; ci < cols.length; ci++) {
+            const cellVal = row.cells[ci - 1] || '';
+            bodyHtml += `<td contenteditable="true" class="cell" data-row="${ri}" data-col="${ci - 1}">${escHtml(cellVal)}</td>`;
+        }
+        bodyHtml += '</tr>';
+    });
+    body.innerHTML = bodyHtml;
+
+    attachEditHandlers();
+}
+
+function escHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function attachEditHandlers() {
+    document.querySelectorAll('.col-name').forEach(el => {
+        el.addEventListener('blur', function() {
+            const ci = parseInt(this.dataset.col);
+            tableData.columns[ci] = this.textContent.trim();
+        });
+    });
+    document.querySelectorAll('.row-name').forEach(el => {
+        el.addEventListener('blur', function() {
+            const ri = parseInt(this.dataset.row);
+            tableData.rows[ri].name = this.textContent.trim();
+        });
+    });
+    document.querySelectorAll('.cell').forEach(el => {
+        el.addEventListener('blur', function() {
+            const ri = parseInt(this.dataset.row);
+            const ci = parseInt(this.dataset.col);
+            if (!tableData.rows[ri].cells) tableData.rows[ri].cells = [];
+            tableData.rows[ri].cells[ci] = this.textContent.trim();
+        });
+        el.addEventListener('focus', function() { this.classList.add('editing'); });
+        el.addEventListener('blur', function() { this.classList.remove('editing'); });
+    });
+}
+
+function addRow() {
+    const numCols = (tableData.columns || ['Feature']).length - 1;
+    tableData.rows.push({ name: 'New Row', cells: Array(Math.max(numCols, 0)).fill('') });
+    renderTable();
+}
+
+function addCol() {
+    tableData.columns.push('New Column');
+    tableData.rows.forEach(row => { row.cells.push(''); });
+    renderTable();
+}
+
+function removeRow(ri) {
+    if (tableData.rows.length <= 1) { alert('Table must have at least one row.'); return; }
+    tableData.rows.splice(ri, 1);
+    renderTable();
+}
+
+function removeCol(ci) {
+    if (tableData.columns.length <= 2) { alert('Table must have at least one data column.'); return; }
+    tableData.columns.splice(ci, 1);
+    tableData.rows.forEach(row => { row.cells.splice(ci - 1, 1); });
+    renderTable();
+}
+
+document.getElementById('btn-add-row').addEventListener('click', addRow);
+document.getElementById('btn-add-col').addEventListener('click', addCol);
+
+// ---- Save ----
+async function saveTable() {
+    const title = document.getElementById('table-title-input').value.trim();
+    const feedbackEl = document.getElementById('save-feedback');
+
+    // Sync any focused editable
+    document.querySelectorAll('.col-name, .row-name, .cell').forEach(el => el.blur());
+
+    try {
+        const resp = await fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ table_data: tableData, title }),
+        });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+            feedbackEl.className = 'alert alert-success';
+            feedbackEl.textContent = data.message;
+            document.getElementById('table-title-display').textContent = title;
+        } else {
+            feedbackEl.className = 'alert alert-danger';
+            feedbackEl.textContent = data.error || 'Save failed.';
+        }
+        feedbackEl.classList.remove('d-none');
+        setTimeout(() => feedbackEl.classList.add('d-none'), 3000);
+    } catch(e) {
+        feedbackEl.className = 'alert alert-danger';
+        feedbackEl.textContent = 'Network error: ' + e.message;
+        feedbackEl.classList.remove('d-none');
+    }
+}
+document.getElementById('btn-save').addEventListener('click', saveTable);
+
+// ---- AI Generate ----
+document.getElementById('btn-ai-generate').addEventListener('click', function() {
+    document.getElementById('ai-input-section').classList.toggle('d-none');
+});
+
+document.getElementById('btn-ai-cancel').addEventListener('click', function() {
+    document.getElementById('ai-input-section').classList.add('d-none');
+});
+
+document.getElementById('item-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = this.value.trim();
+        if (val && !itemList.includes(val)) {
+            itemList.push(val);
+            renderItemTags();
+        }
+        this.value = '';
+    }
+});
+
+function renderItemTags() {
+    const container = document.getElementById('item-tags');
+    container.innerHTML = itemList.map((item, i) =>
+        `<span class="badge bg-purple rounded-pill px-3 py-2 d-flex align-items-center gap-1">
+            ${item}
+            <button type="button" class="btn-close btn-close-white btn-sm ms-1" onclick="removeItem(${i})"></button>
+        </span>`
+    ).join('');
+}
+
+function removeItem(i) {
+    itemList.splice(i, 1);
+    renderItemTags();
+}
+
+document.getElementById('btn-ai-submit').addEventListener('click', async function() {
+    if (itemList.length < 2) {
+        alert('Please add at least 2 items to compare.');
+        return;
+    }
+    const loadingEl = document.getElementById('ai-loading');
+    this.disabled = true;
+    loadingEl.classList.remove('d-none');
+
+    try {
+        const resp = await fetch(AI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ items: itemList }),
+        });
+        const data = await resp.json();
+        if (data.error) {
+            alert('AI Error: ' + data.error);
+        } else {
+            tableData = data.table_data;
+            renderTable();
+            document.getElementById('ai-input-section').classList.add('d-none');
+        }
+    } catch(e) {
+        alert('Request failed: ' + e.message);
+    } finally {
+        this.disabled = false;
+        loadingEl.classList.add('d-none');
+    }
+});
+
+// Init
+renderTable();
+</script>
+{% endblock %}

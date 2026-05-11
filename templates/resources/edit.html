@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Edit Resource{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'projects:list' %}">Projects</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'projects:detail' project.pk %}">{{ project.title|truncatechars:30 }}</a></li>
+        <li class="breadcrumb-item active">Edit Resource</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="fw-bold mb-4"><i class="bi bi-pencil me-2 text-purple"></i>Edit Resource</h3>
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Title <span class="text-danger">*</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Resource Type</label>
+                        {{ form.resource_type }}
+                    </div>
+                    <div id="file-section" class="mb-3">
+                        <label class="form-label fw-medium">PDF File</label>
+                        {% if resource.file %}
+                        <div class="alert alert-info py-2 small mb-2">
+                            Current: <a href="{{ resource.file.url }}" target="_blank">{{ resource.file.name }}</a>
+                        </div>
+                        {% endif %}
+                        {{ form.file }}
+                        {% if form.file.errors %}<div class="text-danger small mt-1">{{ form.file.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div id="url-section" class="mb-3 d-none">
+                        <label class="form-label fw-medium">URL</label>
+                        {{ form.url }}
+                        {% if form.url.errors %}<div class="text-danger small mt-1">{{ form.url.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                        <a href="{% url 'projects:detail' project.pk %}" class="btn btn-outline-secondary px-4">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const typeSelect = document.getElementById('id_resource_type');
+const fileSection = document.getElementById('file-section');
+const urlSection = document.getElementById('url-section');
+function toggleSections() {
+    if (typeSelect.value === 'file') {
+        fileSection.classList.remove('d-none');
+        urlSection.classList.add('d-none');
+    } else {
+        fileSection.classList.add('d-none');
+        urlSection.classList.remove('d-none');
+    }
+}
+typeSelect.addEventListener('change', toggleSections);
+toggleSections();
+</script>
+{% endblock %}

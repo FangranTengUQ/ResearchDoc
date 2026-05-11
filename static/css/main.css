@@ -1,0 +1,192 @@
+/* ========================================
+   ResearchDoc - Main Stylesheet
+   Purple-themed (UQ-inspired) SaaS platform
+   ======================================== */
+
+:root {
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-100: #ede9fe;
+  --purple-50:  #f5f3ff;
+  --bs-primary:   #7c3aed;
+  --bs-primary-rgb: 124, 58, 237;
+}
+
+/* ---- Typography ---- */
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f8f9fa;
+  color: #1a1a2e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main { flex: 1; }
+
+/* ---- Navbar ---- */
+.bg-primary-custom {
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%) !important;
+}
+
+.navbar-brand { letter-spacing: -0.3px; }
+
+.search-input {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+  color: white;
+  width: 200px;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.6); }
+.search-input:focus {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.6);
+  color: white;
+  box-shadow: none;
+}
+
+/* ---- Bootstrap Override ---- */
+.btn-primary {
+  background: var(--purple-600);
+  border-color: var(--purple-600);
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: var(--purple-700);
+  border-color: var(--purple-700);
+}
+
+.btn-outline-primary {
+  color: var(--purple-600);
+  border-color: var(--purple-600);
+}
+.btn-outline-primary:hover {
+  background: var(--purple-600);
+  border-color: var(--purple-600);
+}
+
+.btn-outline-purple {
+  color: var(--purple-600);
+  border-color: var(--purple-600);
+  background: transparent;
+}
+.btn-outline-purple:hover {
+  background: var(--purple-600);
+  border-color: var(--purple-600);
+  color: white;
+}
+
+.text-purple { color: var(--purple-600) !important; }
+.bg-purple   { background-color: var(--purple-600) !important; }
+.bg-purple-light { background-color: var(--purple-100) !important; }
+
+/* Form controls focus */
+.form-control:focus, .form-select:focus {
+  border-color: var(--purple-600);
+  box-shadow: 0 0 0 0.2rem rgba(124,58,237,.15);
+}
+
+/* ---- Landing Page ---- */
+.hero-section {
+  padding: 3rem 0;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.badge.bg-purple-light { background-color: var(--purple-100) !important; }
+
+.feature-card {
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(124,58,237,.12) !important;
+}
+
+.feature-icon { display: inline-flex; align-items: center; justify-content: center; }
+
+.cta-section {
+  background: linear-gradient(135deg, var(--purple-50), #ede9fe);
+  border: 1px solid var(--purple-100);
+}
+
+/* ---- Project Cards ---- */
+.project-card {
+  transition: transform .2s ease, box-shadow .2s ease;
+  position: relative;
+}
+.project-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(124,58,237,.1) !important;
+}
+.project-icon { display: inline-flex; }
+
+/* ---- Resources ---- */
+.bg-danger-light  { background-color: #fee2e2 !important; }
+.bg-info-light    { background-color: #e0f2fe !important; }
+.resource-icon { display: inline-flex; }
+
+/* ---- Search Results ---- */
+.search-result-card {
+  transition: box-shadow .15s ease;
+}
+.search-result-card:hover {
+  box-shadow: 0 4px 16px rgba(124,58,237,.12) !important;
+}
+
+/* ---- Empty States ---- */
+.empty-state { color: #6c757d; }
+
+/* ---- Alerts (message tags) ---- */
+.alert-error {
+  background-color: #fff5f5;
+  border-color: #fed7d7;
+  color: #c53030;
+}
+
+/* ---- Footer ---- */
+footer.footer {
+  background: #1e1e2e !important;
+}
+
+/* ---- Breadcrumb ---- */
+.breadcrumb-item a { color: var(--purple-600); text-decoration: none; }
+.breadcrumb-item a:hover { text-decoration: underline; }
+
+/* ---- Tab Nav ---- */
+.nav-tabs .nav-link { color: #6c757d; }
+.nav-tabs .nav-link:hover { color: var(--purple-600); }
+.nav-tabs .nav-link.active {
+  color: var(--purple-600);
+  border-bottom-color: var(--purple-600);
+  font-weight: 500;
+}
+
+/* ---- Cards ---- */
+.card { border-radius: 0.75rem; }
+.card-header { border-radius: 0.75rem 0.75rem 0 0 !important; }
+
+/* ---- Tiptap editor ProseMirror ---- */
+.ProseMirror { outline: none; }
+.ProseMirror p { margin-bottom: 0.75em; }
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600; }
+.ProseMirror blockquote {
+  border-left: 3px solid var(--purple-600);
+  padding-left: 1rem;
+  color: #6c757d;
+}
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
+
+/* ---- Responsive ---- */
+@media (max-width: 576px) {
+  .hero-section h1 { font-size: 2rem; }
+  .search-input { width: 140px; }
+}
+
+/* ---- Utility ---- */
+.min-w-0 { min-width: 0; }
+.sticky-top { top: 70px !important; }
