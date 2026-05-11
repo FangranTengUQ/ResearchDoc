@@ -88,7 +88,7 @@ def summary_delete(request, pk):
 @require_POST
 def ai_generate_summary(request, project_pk):
     project = get_object_or_404(ResearchProject, pk=project_pk, user=request.user)
-    api_key = settings.ANTHROPIC_API_KEY
+    api_key = settings.OPENAI_API_KEY
     if not api_key:
         return JsonResponse({'error': 'OpenAI API key not configured.'}, status=400)
 
@@ -123,7 +123,7 @@ Keep it academic, clear, and well-structured. About 300-400 words."""
         import openai
         client = openai.OpenAI(api_key=api_key)
         message = client.chat.completions.create(
-            model="gpt-5.4-mini",
+            model="gpt-4o-mini",
             max_completion_tokens=1024,
             messages=[{"role": "user", "content": prompt}]
         )
