@@ -123,7 +123,7 @@ Keep it academic, clear, and well-structured. About 300-400 words."""
         import openai
         client = openai.OpenAI(api_key=api_key)
         message = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5.4-mini",
             max_completion_tokens=1024,
             messages=[{"role": "user", "content": prompt}]
         )
