@@ -19,7 +19,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('user', 'plan', 'start_date', 'end_date', 'archived', 'created_at')
     list_filter = ('plan', 'archived')
     search_fields = ('user__username', 'user__email')
-    list_per_page = 20
+    list_per_page = 10
     actions = ['archive_subscriptions', 'unarchive_subscriptions']
 
     def archive_subscriptions(self, request, queryset):

@@ -204,5 +204,5 @@ sudo nginx -t && sudo systemctl reload nginx
 ## GenAI Declaration
 
 This project was developed with the assistance of Generative AI tools:
-- **Claude Code** (Anthropic) — Used throughout development for code generation, debugging, and deployment assistance.
-- All code has been reviewed and tested by the developer.
+- **Claude Code** (Anthropic) — Used to provide ideas, suggestions, and guidance during development. All implementation, coding decisions, testing, and deployment were carried out by the developer.
+- All code has been reviewed and understood by the developer.
