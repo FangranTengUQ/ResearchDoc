@@ -2,6 +2,20 @@
 
 A SaaS research management platform built with Django 5.1.
 
+## Live Deployment
+
+**Deployed URL:** https://web-production-ea24f.up.railway.app
+
+**Admin account:**
+- Username: admin1
+- Password: Tfr20020528
+
+**Test user account:**
+- Username: Frank_Teng
+- Password: Tfr20020528!
+
+---
+
 ## Features
 
 - **Project Management** — Create and manage research projects with CRUD operations
@@ -182,5 +196,13 @@ sudo nginx -t && sudo systemctl reload nginx
 | Frontend | Bootstrap 5.3 |
 | Rich Text | Tiptap 2 |
 | Static Files | Whitenoise |
-| AI | Anthropic Claude (claude-sonnet-4-20250514) |
+| AI | OpenAI (gpt-5.4-mini) |
 | Server | Gunicorn + Nginx |
+
+---
+
+## GenAI Declaration
+
+This project was developed with the assistance of Generative AI tools:
+- **Claude Code** (Anthropic) — Used throughout development for code generation, debugging, and deployment assistance.
+- All code has been reviewed and tested by the developer.
